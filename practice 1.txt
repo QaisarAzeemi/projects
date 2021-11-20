@@ -3,6 +3,7 @@
 <html>
   <head>
      <title>My First Web Page</title>
+     <script src="practice.js"></script>
   </head>
 
   <body>
