@@ -1,5 +1,9 @@
+//Express is a minimal and flexible Node.js web application framework 
+//that provides a robust set of features for web and mobile applications.
 const express = require("express");
 var app = express();
+//Body-parser is the Node. js body parsing middleware.
+//it is responsible for parsing the incoming request bodies in a middleware before you handle it.
 const bodyParser = require(`body-parser`)
 
 var port = process.env.PORT || 8088
@@ -7,6 +11,8 @@ app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 app.use(express.json());
 app.use(express.static('web.html'));
+//To serve static files such as images, CSS files, html files,
+//and JavaScript files, use the express.static built - in middleware function in Express.
 var appliances = [
     { id: 1, name: "Juicer", quantity: 3 },
     { id: 2, name: "Washig machine", quantity: 2 },
@@ -16,8 +22,11 @@ var appliances = [
 app.use(express.json()) // middlewear called to interect with outer world via post. i will connect your machine 
     // with the server
 app.get("/web", (request, response) => {
-    response.sendFile(__dirname + "/web.html")
-})
+        response.sendFile(__dirname + "/web.html")
+    })
+    //sendFile() function basically transfers the file at the given path and it sets the Content-Type response 
+    //HTTP header field based on the filename extension.Parameter: The path parameter describes the path and
+    // the options parameter contains various properties like maxAge, root, etc and fn is the callback function
 app.get("/appliances", (request, response) => {
     //response.send("This is the list of students " + JSON.stringify(students));
     var result = `  <table border = 2>
@@ -37,14 +46,17 @@ app.get("/appliances", (request, response) => {
     response.send(result)
 })
 app.post("/postappliances", (request, response) => {
-    var appliance = {
-        id: appliances.length + 1,
-        name: request.body.name,
-        quantity: request.body.quantity
-    }
-    appliances.push(appliance)
-    response.send("Data is added to the main streem")
-})
+        var appliance = {
+            id: appliances.length + 1,
+            name: request.body.name,
+            quantity: request.body.quantity
+        }
+        appliances.push(appliance)
+        response.send("Data is added to the main streem")
+    })
+    //send() function basically sends the HTTP response. The body parameter can be a String or a Buffer object 
+    //or an object or an Array. Parameter: This function accepts a single parameter body that describe the body 
+    //which is to be sent in the response.
 app.get("/appliances", (request, response) => {
     var appliance = {
         id: appliances.length + 1,
