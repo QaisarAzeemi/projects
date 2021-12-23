@@ -6,9 +6,9 @@ const bodyParser = require('body-parser');
 //const { request, response } = require('express');
 const app = express();
 app.use(express.json());
-//app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({ extended: false }));
 //app.use(bodyParser.json()); //this is also true and must be added to program
-port = process.env.PORT //|| 8077
+port = process.env.PORT || 8077
 app.get('/', (req, res) => {
     res.send(`Heroku app is deployed on port : ${port}`);
 })
