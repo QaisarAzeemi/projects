@@ -8,7 +8,9 @@ app.use(express.json());
 //app.use(bodyParser.urlencoded({ extended: false }));
 //app.use(bodyParser.json()); //this is also true and must be added to program
 port = process.env.PORT || 8080
-
+app.get('/', (req, res) => {
+    res.send(`Heroku app is deployed on port : ${port}`);
+})
 app.post("/vc", bodyParser.json(), (request, response) => {
     const agent = new WebhookClient({ request: request, response: response })
 
@@ -34,5 +36,5 @@ app.post("/vc", bodyParser.json(), (request, response) => {
     agent.handleRequest(intentMap)
 })
 app.listen(port, () => {
-    console.log("Server is Up");
+    console.log("Server is Up and running on port : " + port);
 })
