@@ -1,11 +1,11 @@
 var mqtt = require('mqtt');
-var client = mqtt.connect('mqtt://118.103.233.199');
+var client = mqtt.connect('mqtt://192.168.18.54');
 client.on('connect', function() {
     setInterval(function() {
-        client.publish('onoff', '0 (Qaisar)');
-        // client.publish('onoff', 'Turn on the light');
+        //client.publish('onoff', '0 (Qaisar)');
+        client.publish('onoff', '0');
         console.log('Message Sent');
-    }, 5000);
+    }, 5000); //sending message after 5 seconds
 });
 //broker mae "npm i mosca"
 //publisher mae "npm i mqtt"
