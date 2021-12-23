@@ -1,4 +1,5 @@
 //portal CLASS_17 .... 
+//https://safe-forest-19514.herokuapp.com/
 const { WebhookClient } = require('dialogflow-fulfillment');
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -7,7 +8,7 @@ const app = express();
 app.use(express.json());
 //app.use(bodyParser.urlencoded({ extended: false }));
 //app.use(bodyParser.json()); //this is also true and must be added to program
-port = process.env.PORT || 8080
+port = process.env.PORT || 8077
 app.get('/', (req, res) => {
     res.send(`Heroku app is deployed on port : ${port}`);
 })
