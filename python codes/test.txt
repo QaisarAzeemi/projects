@@ -1,0 +1,9 @@
+
+This a test file that contains color names
+Red
+Blue
+Green
+Yellow
+Orange
+White
+____________________________________________________
