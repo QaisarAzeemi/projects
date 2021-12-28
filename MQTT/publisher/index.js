@@ -13,3 +13,9 @@ client.on('connect', function() {
 
 
 //WE CAN USE PlatformIO in vscode as an extention instead of ardrino
+
+// client.on('connect', function() {
+//     //client.publish('onoff', '0 (Qaisar)');
+//     client.publish('onoff', '1');
+//     console.log('Message Sent'); //sending message after 5 seconds
+// });

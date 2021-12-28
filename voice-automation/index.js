@@ -1,12 +1,14 @@
 //portal CLASS_17 .... 
-//https://safe-forest-19514.herokuapp.com/
+//https://shielded-stream-03167.herokuapp.com/
 const { WebhookClient } = require('dialogflow-fulfillment');
 const express = require('express');
 const bodyParser = require('body-parser');
+var mqtt = require('mqtt');
+var client = mqtt.connect('mqtt://192.168.18.54');
 //const { request, response } = require('express');
 const app = express();
-app.use(express.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+//app.use(express.json());
+//app.use(bodyParser.urlencoded({ extended: false }));
 //app.use(bodyParser.json()); //this is also true and must be added to program
 port = process.env.PORT || 8077
 app.get('/', (req, res) => {
@@ -21,13 +23,15 @@ app.post("/vc", bodyParser.json(), (request, response) => {
     //     var num02 = agent.parameters.number02;
     //     agent.add(`welcome to calculatorbot from backend by Qaisar, ${num01} + ${num02} = ${num01+num02}`);
     // }
-    function turnOn() {
+    function turnOn(agent) {
         console.log(agent.request);
+        client.publish('onoff', '1');
         agent.add(`Turning ON the LED`);
     }
 
-    function turnOff() {
+    function turnOff(agent) {
         console.log(agent.request);
+        client.publish('onoff', '0');
         agent.add(`Turning OFF the LED`);
     }
     let intentMap = new Map();
