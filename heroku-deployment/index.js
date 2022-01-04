@@ -80,10 +80,10 @@ app.put("/appliance/:id", (request, response) => {
 
 app.delete("/appliance/:id", (request, response) => {
 
-    var appliance = appliancs.find(i => i.id === parseInt(request.params.id))
-    var index = appliancs.indexOf(appliance) //The indexOf() function is a string function from Node.js
+    var appliance = appliances.find(i => i.id === parseInt(request.params.id))
+    var index = appliances.indexOf(appliance) //The indexOf() function is a string function from Node.js
         // which is used to find a string with another string.
-    appliancs.splice(index, 1)
+    appliances.splice(index, 1)
         //The splice() method is a built-in method for JavaScript Array objects. It lets you change the content of 
         //your array by removing or replacing existing elements with new ones. This method modifies the original 
         //array and returns the removed elements as a new array.

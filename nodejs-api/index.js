@@ -12,7 +12,9 @@ var appliances = [
 
 app.use(express.json()) // middlewear called to interect with outer world via post. i will connect your machine 
     // with the server
-
+app.get("/web", (request, response) => {
+    response.sendFile(__dirname + "/web.html")
+})
 app.get("/appliances", (request, response) => {
     //response.send("This is the list of students " + JSON.stringify(students));
     var result = `<table border=2 >
@@ -31,7 +33,16 @@ app.get("/appliances", (request, response) => {
     })
     response.send(result)
 })
-app.post("/appliances", (request, responses) => {
+app.get("/appliances", (request, response) => {
+    var appliance = {
+        id: appliances.length + 1,
+        name: request.query.name,
+        quantity: request.query.quantity
+    }
+    appliances.push(appliance)
+    response.send("Data is added to the main streem")
+})
+app.post("/postappliances", (request, responses) => {
     var appliance = {
         id: appliances.length + 1,
         name: request.body.name,
@@ -43,19 +54,18 @@ app.post("/appliances", (request, responses) => {
 app.put("/appliance/:id", (request, response) => {
 
     var appliance = appliances.find(i => i.id === parseInt(request.params.id))
-        // var index = students.indexOf(student)
-        // students.splice(index, 1)
-    response.send("The id is this : " + appliance)
-    appliance.name = request.body.name
-    response.send("Index is Updated")
+    response.send("The id is this : " + appliance);
+    appliance.name = request.body.name;
+    appliance.quantity = request.body.quantity;
+    response.send("Index is Updated");
 })
 
 app.delete("/appliance/:id", (request, response) => {
 
-    var appliance = appliancs.find(i => i.id === parseInt(request.params.id))
-    var index = appliancs.indexOf(student)
-    appliancs.splice(index, 1)
-    response.send("Record is Deleted")
+    var appliance = appliances.find(i => i.id === parseInt(request.params.id));
+    var index = appliances.indexOf(appliance);
+    appliances.splice(index, 1);
+    response.send("Record is Deleted");
 })
 
 app.get("/student/:year/:month/:day", (request, response) => {
