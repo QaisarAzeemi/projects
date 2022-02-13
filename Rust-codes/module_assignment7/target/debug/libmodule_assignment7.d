@@ -1,0 +1,1 @@
+C:\Users\Toshiba\iot\module_assignment7\target\debug\libmodule_assignment7.rlib: C:\Users\Toshiba\example_lib\src\lib.rs C:\Users\Toshiba\iot\module_assignment7\src\lib.rs C:\Users\Toshiba\iot\my_library\src\lib.rs

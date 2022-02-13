@@ -1,0 +1,11 @@
+[package]
+name = "module_assignment7"
+version = "0.1.0"
+authors = ["QaisarAzeemi <Qaisarazeemi@uop.edu.pk>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+my_library = {path = "../my_library"}
+example_lib = {path = "C:/Users/Toshiba/example_lib"}

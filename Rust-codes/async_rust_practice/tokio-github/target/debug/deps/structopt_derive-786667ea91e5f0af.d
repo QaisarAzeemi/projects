@@ -1,0 +1,10 @@
+/media/qaisar/2CD2515DD2512BF8/iot/async_rust_practice/tokio-github/target/debug/deps/libstructopt_derive-786667ea91e5f0af.so: /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/structopt-derive-0.4.14/src/lib.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/structopt-derive-0.4.14/src/attrs.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/structopt-derive-0.4.14/src/doc_comments.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/structopt-derive-0.4.14/src/parse.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/structopt-derive-0.4.14/src/spanned.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/structopt-derive-0.4.14/src/ty.rs
+
+/media/qaisar/2CD2515DD2512BF8/iot/async_rust_practice/tokio-github/target/debug/deps/structopt_derive-786667ea91e5f0af.d: /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/structopt-derive-0.4.14/src/lib.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/structopt-derive-0.4.14/src/attrs.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/structopt-derive-0.4.14/src/doc_comments.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/structopt-derive-0.4.14/src/parse.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/structopt-derive-0.4.14/src/spanned.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/structopt-derive-0.4.14/src/ty.rs
+
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/structopt-derive-0.4.14/src/lib.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/structopt-derive-0.4.14/src/attrs.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/structopt-derive-0.4.14/src/doc_comments.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/structopt-derive-0.4.14/src/parse.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/structopt-derive-0.4.14/src/spanned.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/structopt-derive-0.4.14/src/ty.rs:

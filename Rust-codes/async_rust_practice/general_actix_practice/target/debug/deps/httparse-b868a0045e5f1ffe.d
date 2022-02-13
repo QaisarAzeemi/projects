@@ -1,0 +1,12 @@
+/media/qaisar/2CD2515DD2512BF8/iot/async_rust_practice/general_actix_practice/target/debug/deps/httparse-b868a0045e5f1ffe.rmeta: /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/lib.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/iter.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/macros.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/simd/mod.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/simd/sse42.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/simd/avx2.rs
+
+/media/qaisar/2CD2515DD2512BF8/iot/async_rust_practice/general_actix_practice/target/debug/deps/libhttparse-b868a0045e5f1ffe.rlib: /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/lib.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/iter.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/macros.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/simd/mod.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/simd/sse42.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/simd/avx2.rs
+
+/media/qaisar/2CD2515DD2512BF8/iot/async_rust_practice/general_actix_practice/target/debug/deps/httparse-b868a0045e5f1ffe.d: /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/lib.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/iter.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/macros.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/simd/mod.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/simd/sse42.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/simd/avx2.rs
+
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/lib.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/iter.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/macros.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/simd/mod.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/simd/sse42.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/httparse-1.4.1/src/simd/avx2.rs:

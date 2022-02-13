@@ -1,0 +1,12 @@
+/media/qaisar/2CD2515DD2512BF8/iot/async_rust_practice/general_actix_practice/target/debug/deps/cookie-49345300083dd483.rmeta: /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/lib.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/builder.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/parse.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/jar.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/delta.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/draft.rs
+
+/media/qaisar/2CD2515DD2512BF8/iot/async_rust_practice/general_actix_practice/target/debug/deps/libcookie-49345300083dd483.rlib: /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/lib.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/builder.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/parse.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/jar.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/delta.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/draft.rs
+
+/media/qaisar/2CD2515DD2512BF8/iot/async_rust_practice/general_actix_practice/target/debug/deps/cookie-49345300083dd483.d: /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/lib.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/builder.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/parse.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/jar.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/delta.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/draft.rs
+
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/lib.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/builder.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/parse.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/jar.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/delta.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/cookie-0.14.4/src/draft.rs:

@@ -1,0 +1,2 @@
+cargo:rustc-env=TYPENUM_BUILD_CONSTS=/media/qaisar/2CD2515DD2512BF8/iot/async_rust_practice/general_actix_practice/target/debug/build/typenum-3a75892c070cb571/out/consts.rs
+cargo:rustc-env=TYPENUM_BUILD_OP=/media/qaisar/2CD2515DD2512BF8/iot/async_rust_practice/general_actix_practice/target/debug/build/typenum-3a75892c070cb571/out/op.rs

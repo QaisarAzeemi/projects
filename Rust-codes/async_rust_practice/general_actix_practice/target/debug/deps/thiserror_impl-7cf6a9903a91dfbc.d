@@ -1,0 +1,11 @@
+/media/qaisar/2CD2515DD2512BF8/iot/async_rust_practice/general_actix_practice/target/debug/deps/libthiserror_impl-7cf6a9903a91dfbc.so: /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/lib.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/ast.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/attr.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/expand.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/fmt.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/prop.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/valid.rs
+
+/media/qaisar/2CD2515DD2512BF8/iot/async_rust_practice/general_actix_practice/target/debug/deps/thiserror_impl-7cf6a9903a91dfbc.d: /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/lib.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/ast.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/attr.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/expand.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/fmt.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/prop.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/valid.rs
+
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/lib.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/ast.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/attr.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/expand.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/fmt.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/prop.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/thiserror-impl-1.0.25/src/valid.rs:

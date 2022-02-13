@@ -1,0 +1,1362 @@
+########################################
+# Evergreen Template for MongoDB Drivers
+########################################
+
+# When a task that used to pass starts to fail
+# Go through all versions that may have been skipped to detect
+# when the task started failing
+stepback: true
+
+# Mark a failure as a system/bootstrap failure (purple box) rather then a task
+# failure by default.
+# Actual testing tasks are marked with `type: test`
+command_type: system
+
+# Protect ourself against rogue test case, or curl gone wild, that runs forever
+# 12 minutes is the longest we'll ever run
+exec_timeout_secs: 3600 # 12 minutes is the longest we'll ever run
+
+# What to do when evergreen hits the timeout (`post:` tasks are run automatically)
+timeout:
+  - command: shell.exec
+    params:
+      script: |
+        ls -la
+
+functions:
+  "fetch source":
+    # Executes git clone and applies the submitted patch, if any
+    - command: git.get_project
+      params:
+        directory: "src"
+    # Applies the subitted patch, if any
+    # Deprecated. Should be removed. But still needed for certain agents (ZAP)
+    - command: git.apply_patch
+    # Make an evergreen exapanstion file with dynamic values
+    - command: shell.exec
+      params:
+        working_dir: "src"
+        script: |
+           # Get the current unique version of this checkout
+           if [ "${is_patch}" = "true" ]; then
+              CURRENT_VERSION=$(git describe)-patch-${version_id}
+           else
+              CURRENT_VERSION=latest
+           fi
+
+           export DRIVERS_TOOLS="$(pwd)/../drivers-tools"
+
+           # Python has cygwin path problems on Windows. Detect prospective mongo-orchestration home directory
+           if [ "Windows_NT" = "$OS" ]; then # Magic variable in cygwin
+              export DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
+           fi
+
+           export MONGO_ORCHESTRATION_HOME="$DRIVERS_TOOLS/.evergreen/orchestration"
+           export MONGODB_BINARIES="$DRIVERS_TOOLS/mongodb/bin"
+           export UPLOAD_BUCKET="${project}"
+           export PROJECT_DIRECTORY="$(pwd)"
+
+           cat <<EOT > expansion.yml
+           CURRENT_VERSION: "$CURRENT_VERSION"
+           DRIVERS_TOOLS: "$DRIVERS_TOOLS"
+           MONGO_ORCHESTRATION_HOME: "$MONGO_ORCHESTRATION_HOME"
+           MONGODB_BINARIES: "$MONGODB_BINARIES"
+           UPLOAD_BUCKET: "$UPLOAD_BUCKET"
+           PROJECT_DIRECTORY: "$PROJECT_DIRECTORY"
+           PREPARE_SHELL: |
+              set -o errexit
+              set -o xtrace
+              export DRIVERS_TOOLS="$DRIVERS_TOOLS"
+              export MONGO_ORCHESTRATION_HOME="$MONGO_ORCHESTRATION_HOME"
+              export MONGODB_BINARIES="$MONGODB_BINARIES"
+              export UPLOAD_BUCKET="$UPLOAD_BUCKET"
+              export PROJECT_DIRECTORY="$PROJECT_DIRECTORY"
+              export DRIVERS_TOOLS_X509="$DRIVERS_TOOLS/.evergreen/x509gen"
+
+              export TMPDIR="$MONGO_ORCHESTRATION_HOME/db"
+              export PATH="$MONGODB_BINARIES:$PATH"
+              export PROJECT="${project}"
+
+              export AUTH=${AUTH}
+              export SSL=${SSL}
+              export TOPOLOGY=${TOPOLOGY}
+              export MONGODB_VERSION=${MONGODB_VERSION}
+
+              if [ "Windows_NT" != "$OS" ]; then
+                  ulimit -n 64000
+              fi
+           EOT
+           # See what we've done
+           cat expansion.yml
+
+    # Load the expansion file to make an evergreen variable with the current unique version
+    - command: expansions.update
+      params:
+        file: src/expansion.yml
+
+  "add aws auth variables to file":
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        silent: true
+        script: |
+          cat <<EOF > ${DRIVERS_TOOLS}/.evergreen/auth_aws/aws_e2e_setup.json
+          {
+              "iam_auth_ecs_account" : "${iam_auth_ecs_account}",
+              "iam_auth_ecs_secret_access_key" : "${iam_auth_ecs_secret_access_key}",
+              "iam_auth_ecs_account_arn": "arn:aws:iam::557821124784:user/authtest_fargate_user",
+              "iam_auth_ecs_cluster": "${iam_auth_ecs_cluster}",
+              "iam_auth_ecs_task_definition": "${iam_auth_ecs_task_definition}",
+              "iam_auth_ecs_subnet_a": "${iam_auth_ecs_subnet_a}",
+              "iam_auth_ecs_subnet_b": "${iam_auth_ecs_subnet_b}",
+              "iam_auth_ecs_security_group": "${iam_auth_ecs_security_group}",
+              "iam_auth_assume_aws_account" : "${iam_auth_assume_aws_account}",
+              "iam_auth_assume_aws_secret_access_key" : "${iam_auth_assume_aws_secret_access_key}",
+              "iam_auth_assume_role_name" : "${iam_auth_assume_role_name}",
+              "iam_auth_ec2_instance_account" : "${iam_auth_ec2_instance_account}",
+              "iam_auth_ec2_instance_secret_access_key" : "${iam_auth_ec2_instance_secret_access_key}",
+              "iam_auth_ec2_instance_profile" : "${iam_auth_ec2_instance_profile}"
+          }
+          EOF
+
+  "run aws auth test with regular aws credentials":
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          # The aws_e2e_assume_role script requires python3 with boto3.
+          pip install boto3
+          cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
+          mongo aws_e2e_regular_aws.js
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        silent: true
+        script: |
+          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
+            alias urlencode='python -c "import sys, urllib as ul; sys.stdout.write(ul.quote_plus(sys.argv[1]))"'
+            USER=$(urlencode ${iam_auth_ecs_account})
+            PASS=$(urlencode ${iam_auth_ecs_secret_access_key})
+            MONGODB_URI="mongodb://$USER:$PASS@localhost"
+          EOF
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          ASYNC_RUNTIME=${ASYNC_RUNTIME} .evergreen/run-aws-tests.sh
+
+  "run aws auth test with assume role credentials":
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
+          # The aws_e2e_assume_role script requires python3 with boto3.
+          pip install boto3
+          cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
+          mongo aws_e2e_assume_role.js
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        silent: true
+        script: |
+          # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
+          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
+              alias urlencode='python -c "import sys, urllib as ul; sys.stdout.write(ul.quote_plus(sys.argv[1]))"'
+              alias jsonkey='python -c "import json,sys;sys.stdout.write(json.load(sys.stdin)[sys.argv[1]])" < ${DRIVERS_TOOLS}/.evergreen/auth_aws/creds.json'
+              USER=$(jsonkey AccessKeyId)
+              USER=$(urlencode $USER)
+              PASS=$(jsonkey SecretAccessKey)
+              PASS=$(urlencode $PASS)
+              SESSION_TOKEN=$(jsonkey SessionToken)
+              SESSION_TOKEN=$(urlencode $SESSION_TOKEN)
+              MONGODB_URI="mongodb://$USER:$PASS@localhost"
+          EOF
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          ASYNC_RUNTIME=${ASYNC_RUNTIME} .evergreen/run-aws-tests.sh
+
+  "run aws auth test with aws EC2 credentials":
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
+          mongo aws_e2e_ec2.js
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          ASYNC_RUNTIME=${ASYNC_RUNTIME} .evergreen/run-aws-tests.sh
+
+  "run aws auth test with aws credentials as environment variables":
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        silent: true
+        script: |
+          # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
+          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
+            export AWS_ACCESS_KEY_ID=${iam_auth_ecs_account}
+            export AWS_SECRET_ACCESS_KEY=${iam_auth_ecs_secret_access_key}
+          EOF
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          ASYNC_RUNTIME=${ASYNC_RUNTIME} PROJECT_DIRECTORY=${PROJECT_DIRECTORY} .evergreen/run-aws-tests.sh
+
+  "run aws auth test with aws credentials and session token as environment variables":
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        silent: true
+        script: |
+          # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
+          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
+            alias jsonkey='python -c "import json,sys;sys.stdout.write(json.load(sys.stdin)[sys.argv[1]])" < ${DRIVERS_TOOLS}/.evergreen/auth_aws/creds.json'
+            export AWS_ACCESS_KEY_ID=$(jsonkey AccessKeyId)
+            export AWS_SECRET_ACCESS_KEY=$(jsonkey SecretAccessKey)
+            export AWS_SESSION_TOKEN=$(jsonkey SessionToken)
+          EOF
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          ASYNC_RUNTIME=${ASYNC_RUNTIME} .evergreen/run-aws-tests.sh
+
+  "run aws ECS auth test":
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          AUTH_AWS_DIR=${DRIVERS_TOOLS}/.evergreen/auth_aws
+          ECS_SRC_DIR=$AUTH_AWS_DIR/src
+
+          mkdir -p $ECS_SRC_DIR/.evergreen
+          
+          # fix issue with `TestData` in SERVER-46340
+          sed -i '1s+^+TestData = {};\n+' $AUTH_AWS_DIR/lib/ecs_hosted_test.js
+
+          # compile mini test project
+          cd $PROJECT_DIRECTORY/.evergreen/aws-ecs-test
+          . ~/.cargo/env
+          cargo build
+          cd -
+
+          # copy mini test binary
+          cp $PROJECT_DIRECTORY/.evergreen/run-mongodb-aws-ecs-test.sh $ECS_SRC_DIR/.evergreen
+          cp $PROJECT_DIRECTORY/.evergreen/aws-ecs-test/target/debug/aws-ecs-test $ECS_SRC_DIR
+
+          cd $AUTH_AWS_DIR
+          cat <<EOF > setup.js
+            const mongo_binaries = "$MONGODB_BINARIES";
+            const project_dir = "$ECS_SRC_DIR";
+          EOF
+
+          cat setup.js
+          mongo --nodb setup.js aws_e2e_ecs.js
+
+  "run x509 tests":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+
+          export MONGODB_URI="${MONGODB_URI}"
+          export SSL="${SSL}"
+          . .evergreen/generate-uri.sh
+          
+          export CERT_PATH=$DRIVERS_TOOLS/.evergreen/x509gen/client.pem
+
+          .evergreen/run-x509-tests.sh
+
+  "run plain tests":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+
+          .evergreen/run-plain-tests.sh
+            
+  "prepare resources":
+    - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+          rm -rf $DRIVERS_TOOLS
+          git clone git://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
+          echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
+
+  "install dependencies":
+    command: shell.exec
+    params:
+      working_dir: "src"
+      script: |
+        ${PREPARE_SHELL}
+        .evergreen/install-dependencies.sh
+
+  "bootstrap mongo-orchestration":
+    - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+          ORCHESTRATION_FILE=${ORCHESTRATION_FILE} \
+            MONGODB_VERSION=${MONGODB_VERSION} \
+            TOPOLOGY=${TOPOLOGY} \
+            AUTH=${AUTH} \
+            SSL=${SSL} \
+            sh ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
+    # run-orchestration generates expansion file with the MONGODB_URI for the cluster
+    - command: expansions.update
+      params:
+        file: mo-expansion.yml
+
+  "run tests":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          export MONGODB_URI="${MONGODB_URI}"
+          export SSL="${SSL}"
+          . .evergreen/generate-uri.sh
+
+          SINGLE_THREAD=${SINGLE_THREAD} ASYNC_RUNTIME=${ASYNC_RUNTIME} .evergreen/run-tests.sh
+
+  "run atlas tests":
+    - command: shell.exec
+      type: test
+      params:
+        silent: true
+        shell: bash
+        working_dir: "src"
+        script: |
+          # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
+          export MONGO_ATLAS_TESTS=1
+          export MONGO_ATLAS_FREE_TIER_REPL_URI='${MONGO_ATLAS_FREE_TIER_REPL_URI}'
+          export MONGO_ATLAS_FREE_TIER_REPL_URI_SRV='${MONGO_ATLAS_FREE_TIER_REPL_URI_SRV}'
+          ASYNC_RUNTIME=${ASYNC_RUNTIME} .evergreen/run-atlas-tests.sh
+
+  "run ocsp test":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+
+          ASYNC_RUNTIME=${ASYNC_RUNTIME} \
+          MONGODB_URI=${MONGODB_URI} \
+          OCSP_TLS_SHOULD_SUCCEED=${OCSP_TLS_SHOULD_SUCCEED} \
+          OCSP_ALGORITHM=${OCSP_ALGORITHM} \
+          MONGO_OCSP_TESTS=1 \
+          .evergreen/run-ocsp-test.sh
+
+  run-valid-ocsp-server:
+    - command: shell.exec
+      params:
+        script: |
+          cd ${DRIVERS_TOOLS}/.evergreen/ocsp
+          ${PYTHON} -m virtualenv ./venv
+          ./venv/${VENV_BIN_DIR}/python -m pip install -r mock-ocsp-responder-requirements.txt
+    - command: shell.exec
+      params:
+        background: true
+        script: |
+          cd ${DRIVERS_TOOLS}/.evergreen/ocsp
+
+          ./venv/${VENV_BIN_DIR}/python ocsp_mock.py \
+          --ca_file ${OCSP_ALGORITHM}/ca.pem \
+          --ocsp_responder_cert ${OCSP_ALGORITHM}/ca.crt \
+          --ocsp_responder_key ${OCSP_ALGORITHM}/ca.key \
+          -p 8100 -v
+
+  run-revoked-ocsp-server:
+    - command: shell.exec
+      params:
+        script: |
+          cd ${DRIVERS_TOOLS}/.evergreen/ocsp
+          ${PYTHON} -m virtualenv ./venv
+          ./venv/${VENV_BIN_DIR}/python -m pip install -r mock-ocsp-responder-requirements.txt
+    - command: shell.exec
+      params:
+        background: true
+        script: |
+          cd ${DRIVERS_TOOLS}/.evergreen/ocsp
+
+          ./venv/${VENV_BIN_DIR}/python ocsp_mock.py \
+          --ca_file ${OCSP_ALGORITHM}/ca.pem \
+          --ocsp_responder_cert ${OCSP_ALGORITHM}/ca.crt \
+          --ocsp_responder_key ${OCSP_ALGORITHM}/ca.key \
+          -p 8100 \
+          -v \
+          --fault revoked
+
+  run-valid-delegate-ocsp-server:
+    - command: shell.exec
+      params:
+        script: |
+          cd ${DRIVERS_TOOLS}/.evergreen/ocsp
+          ${PYTHON} -m virtualenv ./venv
+          ./venv/${VENV_BIN_DIR}/python -m pip install -r mock-ocsp-responder-requirements.txt
+    - command: shell.exec
+      params:
+        background: true
+        script: |
+          cd ${DRIVERS_TOOLS}/.evergreen/ocsp
+
+          ./venv/${VENV_BIN_DIR}/python ocsp_mock.py \
+          --ca_file ${OCSP_ALGORITHM}/ca.pem \
+          --ocsp_responder_cert ${OCSP_ALGORITHM}/ocsp-responder.crt \
+          --ocsp_responder_key ${OCSP_ALGORITHM}/ocsp-responder.key \
+          -p 8100 -v
+
+  run-revoked-delegate-ocsp-server:
+    - command: shell.exec
+      params:
+        script: |
+          cd ${DRIVERS_TOOLS}/.evergreen/ocsp
+          ${PYTHON} -m virtualenv ./venv
+          ./venv/${VENV_BIN_DIR}/python -m pip install -r mock-ocsp-responder-requirements.txt
+    - command: shell.exec
+      params:
+        background: true
+        script: |
+          cd ${DRIVERS_TOOLS}/.evergreen/ocsp
+
+          ./venv/${VENV_BIN_DIR}/python ocsp_mock.py \
+          --ca_file ${OCSP_ALGORITHM}/ca.pem \
+          --ocsp_responder_cert ${OCSP_ALGORITHM}/ocsp-responder.crt \
+          --ocsp_responder_key ${OCSP_ALGORITHM}/ocsp-responder.key \
+          -p 8100 \
+          -v \
+          --fault revoked
+
+  "compile only":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          ASYNC_RUNTIME=${ASYNC_RUNTIME} RUST_VERSION=${RUST_VERSION} .evergreen/compile-only.sh
+
+  "check rustfmt":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          .evergreen/check-rustfmt.sh
+
+  "check clippy":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          .evergreen/check-clippy.sh
+
+  "check rustdoc":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          .evergreen/check-rustdoc.sh
+
+  "upload-mo-artifacts":
+    - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+          find $MONGO_ORCHESTRATION_HOME -name \*.log | xargs tar czf mongodb-logs.tar.gz
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongodb-logs.tar.gz
+        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-mongodb-logs.tar.gz
+        bucket: mciuploads
+        permissions: public-read
+        content_type: ${content_type|application/x-gzip}
+        display_name: "mongodb-logs.tar.gz"
+
+  "stop mongo orchestration":
+    - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+          
+          cd "$MONGO_ORCHESTRATION_HOME"
+          # source the mongo-orchestration virtualenv if it exists
+          if [ -f venv/bin/activate ]; then
+            . venv/bin/activate
+          elif [ -f venv/Scripts/activate ]; then
+            . venv/Scripts/activate
+          fi
+          mongo-orchestration stop
+
+
+  "cleanup":
+    - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+          rm -rf ~/.rustup
+          rm -rf $DRIVERS_TOOLS || true
+
+  "fix absolute paths":
+    - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+          for filename in $(find ${DRIVERS_TOOLS} -name \*.json); do
+            perl -p -i -e "s|ABSOLUTE_PATH_REPLACEMENT_TOKEN|${DRIVERS_TOOLS}|g" $filename
+          done
+
+  "windows fix":
+    - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+          for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY}/.evergreen -name \*.sh); do
+            cat $i | tr -d '\r' > $i.new
+            mv $i.new $i
+          done
+
+          # Copy client certificate because symlinks do not work on Windows.
+          if [ "Windows_NT" = "$OS" ]; then # Magic variable in cygwin
+            cp ${DRIVERS_TOOLS}/.evergreen/x509gen/client.pem ${MONGO_ORCHESTRATION_HOME}/lib/client.pem
+          fi
+
+  "make files executable":
+    - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+          for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY}/.evergreen -name \*.sh); do
+            chmod +x $i
+          done
+
+  "init test-results":
+    - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+          echo '{"results": [{ "status": "FAIL", "test_file": "Build", "log_raw": "No test-results.json found was created"  } ]}' > ${PROJECT_DIRECTORY}/test-results.json
+
+pre:
+  - func: "fetch source"
+  - func: "prepare resources"
+  - func: "windows fix"
+  - func: "fix absolute paths"
+  - func: "init test-results"
+  - func: "make files executable"
+  - func: "install dependencies"
+
+post:
+  - func: "stop mongo orchestration"
+  - func: "upload-mo-artifacts"
+  - func: "cleanup"
+
+tasks:
+  - name: "test-3.6-standalone"
+    tags: ["3.6", "standalone"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: "3.6"
+          TOPOLOGY: "server"
+      - func: "run tests"
+
+  - name: "test-3.6-replica_set"
+    tags: ["3.6", "replica_set"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: "3.6"
+          TOPOLOGY: "replica_set"
+      - func: "run tests"
+
+  - name: "test-3.6-sharded_cluster"
+    tags: ["3.6", "sharded_cluster"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: "3.6"
+          TOPOLOGY: "sharded_cluster"
+      - func: "run tests"
+
+  - name: "test-4.0-standalone"
+    tags: ["4.0", "standalone"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: "4.0"
+          TOPOLOGY: "server"
+      - func: "run tests"
+
+  - name: "test-4.0-replica_set"
+    tags: ["4.0", "replica_set"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: "4.0"
+          TOPOLOGY: "replica_set"
+      - func: "run tests"
+
+  - name: "test-4.0-sharded_cluster"
+    tags: ["4.0", "sharded_cluster"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: "4.0"
+          TOPOLOGY: "sharded_cluster"
+      - func: "run tests"
+
+  - name: "test-4.2-standalone"
+    tags: ["4.2", "standalone"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: "4.2"
+          TOPOLOGY: "server"
+      - func: "run tests"
+
+  - name: "test-4.2-replica_set"
+    tags: ["4.2", "replica_set"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: "4.2"
+          TOPOLOGY: "replica_set"
+      - func: "run tests"
+
+  - name: "test-4.2-sharded_cluster"
+    tags: ["4.2", "sharded_cluster"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: "4.2"
+          TOPOLOGY: "sharded_cluster"
+      - func: "run tests"
+
+  - name: "test-4.4-standalone"
+    tags: ["4.4", "standalone"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: "4.4"
+          TOPOLOGY: "server"
+      - func: "run tests"
+
+  - name: "test-4.4-replica_set"
+    tags: ["4.4", "replica_set"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: "4.4"
+          TOPOLOGY: "replica_set"
+      - func: "run tests"
+
+  - name: "test-4.4-sharded_cluster"
+    tags: ["4.4", "sharded_cluster"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: "4.4"
+          TOPOLOGY: "sharded_cluster"
+      - func: "run tests"
+
+  - name: "test-4.4-aws-auth"
+    # "4.4" explicitly left off to keep this out of the generic matrix
+    tags: ["aws-auth"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "auth-aws.json"
+          MONGODB_VERSION: "4.4"
+          AUTH: "auth"
+          TOPOLOGY: "server"
+      - func: "add aws auth variables to file"
+      - func: "run aws auth test with regular aws credentials"
+      - func: "run aws auth test with assume role credentials"
+      - func: "run aws auth test with aws credentials as environment variables"
+      - func: "run aws auth test with aws credentials and session token as environment variables"
+      - func: "run aws auth test with aws EC2 credentials"
+      - func: "run aws ECS auth test"
+
+  - name: "test-latest-standalone"
+    tags: ["latest", "standalone"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: "latest"
+          TOPOLOGY: "server"
+      - func: "run tests"
+
+  - name: "test-latest-replica_set"
+    tags: ["latest", "replica_set"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: "latest"
+          TOPOLOGY: "replica_set"
+      - func: "run tests"
+
+  - name: "test-latest-sharded_cluster"
+    tags: ["latest", "sharded_cluster"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: "latest"
+          TOPOLOGY: "sharded_cluster"
+      - func: "run tests"
+
+  - name: "test-latest-aws-auth"
+    # "latest" explicitly left off to keep this out of the generic matrix
+    tags: ["aws-auth"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "auth-aws.json"
+          MONGODB_VERSION: "latest"
+          AUTH: "auth"
+          TOPOLOGY: "server"
+      - func: "add aws auth variables to file"
+      - func: "run aws auth test with regular aws credentials"
+      - func: "run aws auth test with assume role credentials"
+      - func: "run aws auth test with aws credentials as environment variables"
+      - func: "run aws auth test with aws credentials and session token as environment variables"
+      - func: "run aws auth test with aws EC2 credentials"
+      - func: "run aws ECS auth test"
+
+  - name: "test-atlas-connectivity"
+    tags: ["atlas-connect"]
+    commands:
+      - func: "run atlas tests"
+
+  - name: "test-x509-auth"
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: "4.4"
+          TOPOLOGY: "server"
+      - func: "run x509 tests"
+
+  - name: "test-plain-auth"
+    commands:
+      - func: "run plain tests"
+
+  - name: test-ocsp-rsa-valid-cert-server-staples
+    tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
+    commands:
+      - func: "run-valid-ocsp-server"
+        vars:
+          OCSP_ALGORITHM: "rsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "rsa"
+          OCSP_TLS_SHOULD_SUCCEED: "true"
+
+  - name: test-ocsp-rsa-invalid-cert-server-staples
+    tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
+    commands:
+      - func: run-revoked-ocsp-server
+        vars:
+          OCSP_ALGORITHM: "rsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "rsa"
+          OCSP_TLS_SHOULD_SUCCEED: "false"
+
+  - name: test-ocsp-rsa-valid-cert-server-does-not-staple
+    tags: ["ocsp", "ocsp-rsa"]
+    commands:
+      - func: "run-valid-ocsp-server"
+        vars:
+          OCSP_ALGORITHM: "rsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-disableStapling.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "rsa"
+          OCSP_TLS_SHOULD_SUCCEED: "true"
+
+  - name: test-ocsp-rsa-invalid-cert-server-does-not-staple
+    tags: ["ocsp", "ocsp-rsa"]
+    commands:
+      - func: run-revoked-ocsp-server
+        vars:
+          OCSP_ALGORITHM: "rsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-disableStapling.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "rsa"
+          OCSP_TLS_SHOULD_SUCCEED: "false"
+
+  - name: test-ocsp-rsa-soft-fail
+    tags: ["ocsp", "ocsp-rsa"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-disableStapling.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "rsa"
+          OCSP_TLS_SHOULD_SUCCEED: "true"
+
+  - name: test-ocsp-rsa-malicious-invalid-cert-mustStaple-server-does-not-staple
+    tags: ["ocsp", "ocsp-rsa"]
+    commands:
+      - func: run-revoked-ocsp-server
+        vars:
+          OCSP_ALGORITHM: "rsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple-disableStapling.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "rsa"
+          OCSP_TLS_SHOULD_SUCCEED: "false"
+
+  - name: test-ocsp-rsa-malicious-no-responder-mustStaple-server-does-not-staple
+    tags: ["ocsp", "ocsp-rsa"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple-disableStapling.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "rsa"
+          OCSP_TLS_SHOULD_SUCCEED: "false"
+
+  - name: test-ocsp-rsa-delegate-valid-cert-server-staples
+    tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
+    commands:
+      - func: run-valid-delegate-ocsp-server
+        vars:
+          OCSP_ALGORITHM: "rsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "rsa"
+          OCSP_TLS_SHOULD_SUCCEED: "true"
+
+  - name: test-ocsp-rsa-delegate-invalid-cert-server-staples
+    tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
+    commands:
+      - func: run-revoked-delegate-ocsp-server
+        vars:
+          OCSP_ALGORITHM: "rsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "rsa"
+          OCSP_TLS_SHOULD_SUCCEED: "false"
+
+  - name: test-ocsp-rsa-delegate-valid-cert-server-does-not-staple
+    tags: ["ocsp", "ocsp-rsa"]
+    commands:
+      - func: run-valid-delegate-ocsp-server
+        vars:
+          OCSP_ALGORITHM: "rsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-disableStapling.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "rsa"
+          OCSP_TLS_SHOULD_SUCCEED: "true"
+
+  - name: test-ocsp-rsa-delegate-invalid-cert-server-does-not-staple
+    tags: ["ocsp", "ocsp-rsa"]
+    commands:
+      - func: run-revoked-delegate-ocsp-server
+        vars:
+          OCSP_ALGORITHM: "rsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-disableStapling.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "rsa"
+          OCSP_TLS_SHOULD_SUCCEED: "false"
+
+  - name: test-ocsp-rsa-delegate-malicious-invalid-cert-mustStaple-server-does-not-staple
+    tags: ["ocsp", "ocsp-rsa"]
+    commands:
+      - func: run-revoked-delegate-ocsp-server
+        vars:
+          OCSP_ALGORITHM: "rsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple-disableStapling.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "rsa"
+          OCSP_TLS_SHOULD_SUCCEED: "false"
+
+  - name: test-ocsp-ecdsa-valid-cert-server-staples
+    tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
+    commands:
+      - func: run-valid-ocsp-server
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+          OCSP_TLS_SHOULD_SUCCEED: "true"
+
+  - name: test-ocsp-ecdsa-invalid-cert-server-staples
+    tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
+    commands:
+      - func: run-revoked-ocsp-server
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+          OCSP_TLS_SHOULD_SUCCEED: "false"
+
+  - name: test-ocsp-ecdsa-valid-cert-server-does-not-staple
+    tags: ["ocsp", "ocsp-ecdsa"]
+    commands:
+      - func: run-valid-ocsp-server
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-disableStapling.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+          OCSP_TLS_SHOULD_SUCCEED: "true"
+
+  - name: test-ocsp-ecdsa-invalid-cert-server-does-not-staple
+    tags: ["ocsp", "ocsp-ecdsa"]
+    commands:
+      - func: run-revoked-ocsp-server
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-disableStapling.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+          OCSP_TLS_SHOULD_SUCCEED: "false"
+
+  - name: test-ocsp-ecdsa-soft-fail
+    tags: ["ocsp", "ocsp-ecdsa"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-disableStapling.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+          OCSP_TLS_SHOULD_SUCCEED: "true"
+
+  - name: test-ocsp-ecdsa-malicious-invalid-cert-mustStaple-server-does-not-staple
+    tags: ["ocsp", "ocsp-ecdsa"]
+    commands:
+      - func: run-revoked-ocsp-server
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple-disableStapling.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+          OCSP_TLS_SHOULD_SUCCEED: "false"
+
+  - name: test-ocsp-ecdsa-malicious-no-responder-mustStaple-server-does-not-staple
+    tags: ["ocsp", "ocsp-ecdsa"]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple-disableStapling.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+          OCSP_TLS_SHOULD_SUCCEED: "false"
+
+  - name: test-ocsp-ecdsa-delegate-valid-cert-server-staples
+    tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
+    commands:
+      - func: run-valid-delegate-ocsp-server
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+          OCSP_TLS_SHOULD_SUCCEED: "true"
+
+  - name: test-ocsp-ecdsa-delegate-invalid-cert-server-staples
+    tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
+    commands:
+      - func: run-revoked-delegate-ocsp-server
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+          OCSP_TLS_SHOULD_SUCCEED: "false"
+
+  - name: test-ocsp-ecdsa-delegate-valid-cert-server-does-not-staple
+    tags: ["ocsp", "ocsp-ecdsa"]
+    commands:
+      - func: run-valid-delegate-ocsp-server
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-disableStapling.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+          OCSP_TLS_SHOULD_SUCCEED: "true"
+
+  - name: test-ocsp-ecdsa-delegate-invalid-cert-server-does-not-staple
+    tags: ["ocsp", "ocsp-ecdsa"]
+    commands:
+      - func: run-revoked-delegate-ocsp-server
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-disableStapling.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+          OCSP_TLS_SHOULD_SUCCEED: "false"
+
+  - name: test-ocsp-ecdsa-delegate-malicious-invalid-cert-mustStaple-server-does-not-staple
+    tags: ["ocsp", "ocsp-ecdsa"]
+    commands:
+      - func: run-revoked-delegate-ocsp-server
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple-disableStapling.json"
+      - func: "run ocsp test"
+        vars:
+          OCSP_ALGORITHM: "ecdsa"
+          OCSP_TLS_SHOULD_SUCCEED: "false"
+
+  - name: "compile-only"
+    commands:
+      - func: "compile only"
+
+  - name: "check-rustfmt"
+    commands:
+      - func: "check rustfmt"
+
+  - name: "check-clippy"
+    commands:
+      - func: "check clippy"
+
+  - name: "check-rustdoc"
+    commands:
+      - func: "check rustdoc"
+
+
+
+axes:
+  - id: "extra-rust-versions"
+    values:
+      - id: "min"
+        display_name: "1.47 (minimum supported version)"
+        variables:
+          RUST_VERSION: "1.47.0"
+      - id: "nightly"
+        display_name: "nightly"
+        variables:
+          RUST_VERSION: "nightly"
+  - id: "mongodb-version"
+    display_name: MongoDB Version
+    values:
+      - id: "latest"
+        display_name: "latest"
+        variables:
+           MONGODB_VERSION: "latest"
+      - id: "4.4"
+        display_name: "4.4"
+        variables:
+          MONGODB_VERSION: "4.4"
+      - id: "4.2"
+        display_name: "4.2"
+        variables:
+          MONGODB_VERSION: "4.2"
+      - id: "4.0"
+        display_name: "4.0"
+        variables:
+          MONGODB_VERSION: "4.0"
+      - id: "3.6"
+        display_name: "3.6"
+        variables:
+          MONGODB_VERSION: "3.6"
+
+  - id: "topology"
+    display_name: Topology
+    values:
+      - id: "standalone"
+        display_name: Standalone
+        variables:
+           TOPOLOGY: "server"
+      - id: "replica-set"
+        display_name: Replica Set
+        variables:
+           TOPOLOGY: "replica_set"
+      - id: "sharded-cluster"
+        display_name: Sharded
+        variables:
+           TOPOLOGY: "sharded_cluster"
+
+  - id: "async-runtime"
+    display_name: Async Runtime
+    values:
+      - id: "tokio"
+        display_name: "tokio"
+        variables:
+          ASYNC_RUNTIME: "tokio"
+      - id: "async-std"
+        display_name: "async-std"
+        variables:
+          ASYNC_RUNTIME: "async-std"
+
+  # Note that drivers-evergreen-tools expects `SSL` as the environmental
+  # variable, not `TLS`, so we have to use that for the actual value used in the
+  # script; we use `TLS` for the metadata that isn't used by the actual shell
+  # scripts.
+  - id: "auth-and-tls"
+    display_name: Authentication and TLS
+    values:
+      - id: "auth-and-tls"
+        display_name: Auth TLS
+        variables:
+           AUTH: "auth"
+           SSL: "ssl"
+      - id: "noauth-and-notls"
+        display_name: NoAuth NoTLS
+        variables:
+           AUTH: "noauth"
+           SSL: "nossl"
+
+  - id: "os"
+    display_name: OS
+    values:
+      - id: ubuntu-18.04
+        display_name: "Ubuntu 18.04"
+        run_on: ubuntu1804-test
+        variables:
+          PYTHON: "/opt/mongodbtoolchain/v3/bin/python"
+          VENV_BIN_DIR: "bin"
+      - id: ubuntu-16.04
+        display_name: "Ubuntu 16.04"
+        run_on: ubuntu1604-test
+        variables:
+          PYTHON: "/opt/mongodbtoolchain/v3/bin/python"
+          VENV_BIN_DIR: "bin"
+      - id: macos-10.14
+        display_name: "MacOS 10.14"
+        run_on: macos-1014
+        variables:
+          SINGLE_THREAD: true
+          PYTHON: "/opt/mongodbtoolchain/v3/bin/python"
+          VENV_BIN_DIR: "bin"
+      - id: windows-64-vs2017-small
+        display_name: "Windows (VS 2017)"
+        run_on: windows-64-vs2017-small
+        variables:
+          PYTHON: "/cygdrive/c/python/Python36/python"
+          VENV_BIN_DIR: "Scripts"
+
+buildvariants:
+-
+  matrix_name: "tests"
+  matrix_spec:
+    os:
+      - ubuntu-16.04
+      - macos-10.14
+      - windows-64-vs2017-small
+    auth-and-tls: "*"
+    async-runtime: "*"
+  display_name: "${os} ${auth-and-tls} with ${async-runtime}"
+  tasks:
+     - ".latest"
+     - ".4.4"
+     - ".4.2"
+     - ".4.0"
+     - ".3.6"
+- matrix_name: "x509-auth"
+  matrix_spec:
+    os:
+      - ubuntu-16.04
+      - macos-10.14
+      - windows-64-vs2017-small
+    auth-and-tls: "auth-and-tls"
+    async-runtime: "*"
+  display_name: "${os} X.509 auth with ${async-runtime}"
+  tasks:
+    - "test-x509-auth"
+
+- matrix_name: "plain-auth"
+  matrix_spec:
+    os:
+      - ubuntu-16.04
+      - macos-10.14
+      - windows-64-vs2017-small
+    async-runtime: "*"
+  display_name: "${os} PLAIN auth with ${async-runtime}"
+  tasks:
+    - "test-plain-auth"
+    
+- matrix_name: "atlas-connect"
+  matrix_spec:
+    os:
+      - ubuntu-16.04
+      - macos-10.14
+      - windows-64-vs2017-small
+    async-runtime: "*"
+  display_name: "Atlas Connectivity ${os} with ${async-runtime}"
+  tasks:
+    - ".atlas-connect"
+- matrix_name: "aws-auth"
+  matrix_spec:
+    os:
+      - ubuntu-18.04
+    async-runtime: "tokio"
+  display_name: "AWS Auth ${os} with ${async-runtime}"
+  tasks:
+    - ".aws-auth"
+# TODO: RUST-361 enable these tests once OCSP support is implemented
+# - matrix_name: "ocsp"
+#   matrix_spec:
+#     os:
+#       - ubuntu-18.04
+#     async-runtime: "*"
+#     mongodb-version:
+#       - latest
+#       - 4.4
+#   display_name: "OCSP ${os} ${mongodb-version} with ${async-runtime}"
+#   batchtime: 20160 # 14 days
+#   tasks:
+#     - ".ocsp"
+# - matrix_name: "ocsp-macos"
+#   matrix_spec:
+#     os:
+#       - macos-10.14
+#     async-runtime: "*"
+#     mongodb-version:
+#       - latest
+#       - 4.4
+#   display_name: "OCSP ${os} ${mongodb-version} with ${async-runtime}"
+#   batchtime: 20160 # 14 days
+#   tasks:
+#       # macOS MongoDB servers do not staple OCSP responses and only support RSA.
+#       - name: ".ocsp-rsa !.ocsp-staple"
+# - matrix_name: "ocsp-windows"
+#   matrix_spec:
+#     os:
+#       - windows-64-vs2017-small
+#     async-runtime: "*"
+#     mongodb-version:
+#       - latest
+#       - 4.4
+#   display_name: "OCSP ${os} ${mongodb-version} with ${async-runtime}"
+#   batchtime: 20160 # 14 days
+#   tasks:
+#       # Windows MongoDB servers do not staple OCSP responses and only support RSA.
+#       - name: ".ocsp-rsa !.ocsp-staple"
+- matrix_name: "compile-only"
+  matrix_spec:
+    os:
+      - ubuntu-18.04
+    async-runtime: "*"
+    extra-rust-versions: "*"
+  display_name: "Compile on Rust ${extra-rust-versions} with ${async-runtime}"
+  tasks:
+    - "compile-only"
+
+-
+  name: "lint"
+  display_name: "Lint"
+  run_on:
+    - ubuntu1804-test
+  tasks:
+    - name: "check-clippy"
+    - name: "check-rustfmt"
+    - name: "check-rustdoc"
+

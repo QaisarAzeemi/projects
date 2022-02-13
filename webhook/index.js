@@ -1,4 +1,5 @@
 //portal CLASS_11 .... 1:20:00
+//https://pure-tor-98713.herokuapp.com/webhook
 const { WebhookClient } = require('dialogflow-fulfillment');
 const express = require('express');
 const bodyParser = require('body-parser');

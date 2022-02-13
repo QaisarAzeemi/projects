@@ -26,9 +26,18 @@ app.post("/weather", (request, response) => {
                 console.log(temp)
                 var temp_data = JSON.parse(temp);
                 console.log("Arranged Data Object", temp_data)
-                return agent.add(`Temperature of ${city_name} is ` + temp_data.current.temperature + "'C")
-                return agent.add("Visibility =" + temp_data.current.visibility + "m")
-                return agent.add(`In ${city_name} is there Day time? :` + temp_data.current.is_day)
+                    // return agent.add(temp_data);
+                agent.add(`Temperature of ${city_name} is ` + temp_data.current.temperature + "'C");
+                agent.add("Countary =" + temp_data.location.country);
+                agent.add(`Observation time = ` + temp_data.current.observation_time);
+                agent.add(`Weather description = ` + temp_data.current.weather_descriptions);
+                agent.add(`Visibility = ` + temp_data.current.visibility + "miles");
+                agent.add("Wind Speed =" + temp_data.current.wind_speed + "m/s");
+                agent.add("Wind Direction =" + temp_data.current.wind_dir);
+                agent.add("Humidity =" + temp_data.current.humidity + "grams of water vapor per kilogram of air");
+                agent.add("Rain chances =" + temp_data.current.precip + "%");
+                agent.add("Cloud Cover =" + temp_data.current.cloudcover + "oktas");
+                return agent.add(`In ${city_name} is there Day time ? : ` + temp_data.current.is_day)
             })
             .catch(() => {
                 return agent.add('Error in getting Data..........')

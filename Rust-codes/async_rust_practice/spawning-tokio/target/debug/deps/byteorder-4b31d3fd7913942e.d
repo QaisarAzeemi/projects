@@ -1,0 +1,7 @@
+/media/qaisar/2CD2515DD2512BF8/iot/async_rust_practice/spawning-tokio/target/debug/deps/byteorder-4b31d3fd7913942e.rmeta: /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/byteorder-1.4.3/src/lib.rs
+
+/media/qaisar/2CD2515DD2512BF8/iot/async_rust_practice/spawning-tokio/target/debug/deps/libbyteorder-4b31d3fd7913942e.rlib: /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/byteorder-1.4.3/src/lib.rs
+
+/media/qaisar/2CD2515DD2512BF8/iot/async_rust_practice/spawning-tokio/target/debug/deps/byteorder-4b31d3fd7913942e.d: /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/byteorder-1.4.3/src/lib.rs
+
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/byteorder-1.4.3/src/lib.rs:

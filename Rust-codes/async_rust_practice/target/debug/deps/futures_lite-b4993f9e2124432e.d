@@ -1,0 +1,11 @@
+/media/qaisar/2CD2515DD2512BF8/iot/async_rust_practice/target/debug/deps/futures_lite-b4993f9e2124432e.rmeta: /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/lib.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/future.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/prelude.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/stream.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/io.rs
+
+/media/qaisar/2CD2515DD2512BF8/iot/async_rust_practice/target/debug/deps/libfutures_lite-b4993f9e2124432e.rlib: /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/lib.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/future.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/prelude.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/stream.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/io.rs
+
+/media/qaisar/2CD2515DD2512BF8/iot/async_rust_practice/target/debug/deps/futures_lite-b4993f9e2124432e.d: /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/lib.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/future.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/prelude.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/stream.rs /home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/io.rs
+
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/lib.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/future.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/prelude.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/stream.rs:
+/home/qaisar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-lite-1.11.3/src/io.rs:

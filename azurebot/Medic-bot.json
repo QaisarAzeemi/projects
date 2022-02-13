@@ -1,0 +1,117 @@
+{
+    "luis_schema_version": "4.0.0",
+    "versionId": "1.0",
+    "name": "Medic-bot",
+    "desc": "Sample app for company",
+    "culture": "en-us",
+    "tokenizerVersion": "1.0.0",
+    "intents": [{
+            "name": "greetings"
+        },
+        {
+            "name": "None"
+        },
+        {
+            "name": "Height"
+        },
+        {
+            "name": "Weight"
+        },
+        {
+            "name": "Allergies"
+        }
+    ],
+    "entities": [{
+        "name": "HealthStatus"
+    }],
+    "composites": [],
+    "closedLists": [],
+    "patternAnyEntities": [],
+    "regex_entities": [],
+    "prebuiltEntities": [],
+    "model_features": [],
+    "regex_features": [],
+    "patterns": [],
+    "utterances": [{
+            "text": "What is your Height?",
+            "intent": "Height",
+            "entities": []
+        },
+        {
+            "text": "Please tell me your Weight?",
+            "intent": "Weight",
+            "entities": []
+        },
+        {
+            "text": "good evening",
+            "intent": "greetings",
+            "entities": []
+        },
+        {
+            "text": "hello",
+            "intent": "greetings",
+            "entities": []
+        },
+        {
+            "text": "hi",
+            "intent": "greetings",
+            "entities": []
+        },
+        {
+            "text": "hola",
+            "intent": "greetings",
+            "entities": []
+        },
+        {
+            "text": "What Allergies are you suffering from?",
+            "intent": "Allergies",
+            "entities": []
+        },
+        {
+            "text": "howdy",
+            "intent": "greetings",
+            "entities": []
+        },
+        {
+            "text": "i'm suffring from flue",
+            "intent": "Allergies",
+            "entities": [{
+                "entity": "HealthStatus",
+                "startPos": 11,
+                "endPos": 19
+            }]
+        },
+        {
+            "text": "i am suffring from cough",
+            "intent": "Allergies",
+            "entities": []
+        },
+        {
+            "text": "What is your weight in pounds?",
+            "intent": "Weight",
+            "entities": []
+        },
+        {
+            "text": "What is your height in foots?",
+            "intent": "Height",
+            "entities": [{
+                "entity": "HealthStatus",
+                "startPos": 4,
+                "endPos": 9
+            }]
+        },
+        {
+            "text": "I am coughing.",
+            "intent": "Allergies",
+            "entities": []
+        },
+
+        {
+            "text": "what's up",
+            "intent": "greetings",
+            "entities": []
+        }
+
+    ],
+    "settings": []
+}
